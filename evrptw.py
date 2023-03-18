@@ -10,7 +10,7 @@ class Customer:
         self.time_window=(customer_ready_time,customer_due_date)
         self.service_time=customer_service_time
 
-    def __eq__(self,cid):
+    def __eq__(self,cid:str):
         return self.id==cid
 
     def __str__(self):
