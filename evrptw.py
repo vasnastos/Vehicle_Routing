@@ -140,10 +140,6 @@ def solve(problem:"Problem",initial_solution:dict):
                 tvars[i]+problem.distance(i,j)*xvars[(i,j)] * problem.g*(problem.Q-yvars[i])-(problem.depot.time_window[1]+problem.g*problem.Q)*(1-xvars[(i,j)])<=tvars[j]
             )
     
-
-
-
-
 if __name__=='__main__':
     instances=Problem.get_instances()
 
