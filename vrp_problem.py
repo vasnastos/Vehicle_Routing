@@ -4,6 +4,9 @@ import tkinter as tk
 from tkinter import filedialog
 from itertools import product
 import docplex.mp.model as mpx
+import gurobipy as grb 
+
+
 
 class Customer:
     def __init__(self,customer_id,customer_xcoord,customer_ycoord,customer_demand,customer_ready_time,customer_due_date,customer_service_time):
@@ -22,8 +25,9 @@ class Customer:
 
 
 class Problem:
-    path_to_datasets=os.path.join('','solomon_datasets')
-    
+    path_to_solomon_datasets=os.path.join('','solomon_datasets')
+    path_to_evrptw_datasets=os.path.join('','EURO_NeurIPS_ORTEC_datasets')
+
     @staticmethod
     def change_path_to_datasets(ui=True,**args):
         if ui:
@@ -66,7 +70,13 @@ class Problem:
 
     def no_customers(self):
         return len(self.customers)
-
+    
+    def statistics(self):
+        # Todo DimGkiok
+        # Average Demand,StdDemand
+        # Average,Std ServiceTime
+        # Average,Std TimeWindow
+        pass
 
 def solve_vrptw_cplex(problem:Problem,K,timelimit):
     C=range(1,problem.no_customers()-1)
@@ -168,9 +178,17 @@ def solve_vrptw_cplex(problem:Problem,K,timelimit):
     
     return solution,model.objective_value
 
+def solve_per_route_cplex(problem:Problem,solution_hint:dict):
+    # TODO nastos vasileios   Optimize a route 
+    pass
+
+
 class TabuSearch:
     pass
 
 
 if __name__=='__main__':
-    pass
+    Problem.change_path_to_datasets(Problem.path_to_solomon_datasets)
+    problem=Problem('c101.txt')
+
+    print(solve_vrptw_cplex(problem,100000,600))
