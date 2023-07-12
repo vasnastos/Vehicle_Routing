@@ -167,3 +167,12 @@ def solve_vrptw_cplex(problem:Problem,K,timelimit):
                 solution[(i,j)]=v
     
     return solution,model.objective_value
+
+
+
+class TabuSearch:
+    pass
+
+
+if __name__=='__main__':
+    pass
