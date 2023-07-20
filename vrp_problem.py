@@ -174,7 +174,7 @@ def solve_vrptw_cplex(problem:Problem,K,timelimit):
     model.print_information()
     model.set_log_output(True)
 
-    # model.minimize(objective)
+    model.minimize(objective)
     model.parameters.threads = os.cpu_count()
     model.parameters.timelimit = timelimit
     solution_model=model.solve(log_output=True)
