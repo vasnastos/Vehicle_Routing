@@ -5,6 +5,7 @@
   [https://data.mendeley.com/datasets/h3mrm5dhxw/1](https://data.mendeley.com/datasets/h3mrm5dhxw/1)
 
 * Neighborhood Operators
+  
   ![./Figures/Neighborhood_Operators](./Figures/neighborhood_operators.png)
 
 
