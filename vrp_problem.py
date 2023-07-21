@@ -7,7 +7,9 @@ import docplex.mp.model as mpx
 from docplex.mp.conflict_refiner import ConflictRefiner
 from docplex.mp.relaxer import Relaxer
 import gurobipy as grb 
+from ortools.sat.python import cp_model
 
+K=10000000
 
 
 class Customer:
@@ -103,7 +105,7 @@ class Problem:
         stdev_service_time += math.sqrt(temp_sum_service_time, self.no_customers())
         stdev_time_window += math.sqrt(temp_sum_time_window, self.no_customers())
 
-def solve_vrptw_cplex(problem:Problem,K,timelimit):
+def solve_vrptw_cplex(problem:Problem,timelimit):
     C=range(1,problem.no_customers()-1)
     N=range(problem.no_customers())
 
@@ -207,6 +209,121 @@ def solve_vrptw_cplex(problem:Problem,K,timelimit):
     
     return solution,model.objective_value
 
+def solve_vrptw_ortools(problem:Problem,solution_time,solution_hint=None):
+    C=range(1,problem.no_customers()-1)
+    N=range(problem.no_customers())
+    V=range(problem.vehicles)
+
+    depot_idx=0
+    termination_idx=problem.no_customers()-1
+
+    model=cp_model.CpModel()
+    xvars={(i,j,v):model.NewBoolVar(name=f'Dvar_{i}_{j}_{v}') for i in N for j in N for v in V}
+    service_time={(i,v):model.NewIntVar(lb=problem.customers[i].ready_time,ub=problem.customers[i].due_date,name=f'st_{i}_{v}') for i in N for v in V}
+
+    # 1. One outcome arc from each customer
+    for i in N:
+        model.Add(
+            sum([
+                xvars[(i,j,v)]
+                for j in N
+                for v in V
+            ])==1
+        )
+    
+    # 2. Each customer should not loop into itself
+    for i in N:
+        model.Add(
+            sum([
+                xvars[(i,i,v)]
+                for v in V
+            ])==0
+        )
+    
+    # 3. Depot node should not have incomes and termination node should not have outcomes
+    model.Add(sum([xvars[(i,depot_idx,v)] for i in N for v in V])==0)
+    model.Add(sum([xvars[(termination_idx,j,v)] for j in N for v in V])==0)
+
+    # 4. A vehicles capacity should be equal or lower the sum of all customers demand
+    for v in V:
+        model.Add(
+            sum([
+                xvars[(i,j,v)] * problem.customers[i].demand
+                for i in C
+                for j in N
+            ])<=problem.capacity
+        )
+    
+    #5. Each customer should have exactly one income and outcome vertex
+    for cid in C:
+        for v in V:
+            model.Add(
+                sum([
+                    xvars[(i,cid,v)]
+                    for i in N
+                ])-sum([
+                    xvars[(cid,j,v)]
+                    for j in N
+                ])==0
+            )
+
+    # 6. Each vehicle should start from the depot node and should terminate on the termination node
+    for vehicle_id in V:
+        model.Add(
+            sum([
+                xvars[(depot_idx,j,vehicle_id)]
+                for j in N
+            ])==1
+        )
+
+        model.Add(
+            sum([
+                xvars[(i,termination_idx,vehicle_id)]
+                for i in N
+            ])==1
+        )
+      
+    # 7. Time window constraint
+    for i in N:
+        for j in N:
+            for v in V:
+                model.Add(
+                    service_time[(i,v)]+int(problem.travel_time[i][j])+K*(1-xvars[(i,j,v)])<=service_time[(j,v)]
+                )
+
+    model.Minimize(
+        sum([
+            xvars[(i,j,v)] * problem.travel_time[i][j]
+            for i in N
+            for j in N
+        ])
+        +sum([
+            sum([xvars[(i,j,vehicle_id)] for i in C for j in C])!=0
+            for vehicle_id in V
+        ])
+    )
+
+    solver=cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds=solution_time
+    solver.parameters.log_search_progress=True
+    solver.parameters.num_search_workers=os.cpu_count()
+    solver.Solve(model=model,solution_callback=cp_model.ObjectiveSolutionPrinter())
+    
+
+    solution_set=dict()
+    status=solver.StatusName()
+    if status in [cp_model.OPTIMAL,cp_model.FEASIBLE]:
+        for customer_id in N:
+            for customer_id2 in N:
+                for vehicle_id in V:
+                    if solver.Value(xvars[(customer_id,customer_id2,vehicle_id)])==1:
+                        solution_set[vehicle_id].append((customer_id,customer_id2))
+    
+    return solution_set
+
+
+
+
 def solve_per_route_cplex(problem:Problem,solution_hint:dict):
     # TODO nastos vasileios   Optimize a route 
     pass
@@ -217,4 +334,4 @@ if __name__=='__main__':
     Problem.change_path_to_datasets(ui=False,path=Problem.path_to_solomon_datasets)
     problem=Problem('c101.txt')
 
-    print(solve_vrptw_cplex(problem,100000,600))
+    print(solve_vrptw_ortools(problem,600))
