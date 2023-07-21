@@ -76,12 +76,32 @@ class Problem:
     def no_customers(self):
         return len(self.customers)
     
-    def statistics(self):
-        # Todo DimGkiok
-        # Average Demand,StdDemand
-        # Average,Std ServiceTime
-        # Average,Std TimeWindow
-        pass
+    def statistics(self):    
+        avg_demand = 0.0
+        avg_service_time = 0.0
+        avg_time_window = 0.0
+        for customer in self.customers:
+            avg_demand += customer.demand
+            avg_service_time += customer.service_time
+            avg_time_window += (customer.due_date - customer.ready_time)
+        avg_demand /= self.no_customers()
+        avg_service_time /= self.no_customers()
+        avg_time_window /= self.no_customers()
+        
+        
+        stdev_demand = 0.0
+        stdev_service_time = 0.0
+        stdev_time_window = 0.0
+        temp_sum_demand = 0.0
+        temp_sum_service_time = 0.0
+        temp_sum_time_window = 0.0
+        for customer in self.customers:
+            temp_sum_demand += math.pow(customer.demand - avg_demand, 2)
+            temp_sum_service_time += math.pow(customer.service_time - avg_service_time, 2)
+            temp_sum_time_window += math.pow((customer.due_date - customer.ready_time) - avg_time_window, 2)
+        stdev_demand += math.sqrt(temp_sum_demand, self.no_customers())   
+        stdev_service_time += math.sqrt(temp_sum_service_time, self.no_customers())
+        stdev_time_window += math.sqrt(temp_sum_time_window, self.no_customers())
 
 def solve_vrptw_cplex(problem:Problem,K,timelimit):
     C=range(1,problem.no_customers()-1)
